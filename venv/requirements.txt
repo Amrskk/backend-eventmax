@@ -1,0 +1,37 @@
+# Основа
+fastapi
+uvicorn[standard]
+
+# postgresql
+psycopg[binary]
+asyncpg
+SQLAlchemy
+alembic
+
+# Pydantic (схемы)
+pydantic
+pydantic-settings
+
+# Работа с внешними API (погода, бот)
+httpx
+python-dotenv
+
+# Авторизация (JWT)
+python-jose[cryptography]
+passlib[bcrypt]
+
+# Для OpenRouter(LLM-интеграции) на тг бота
+openai
+python-telegram-bot # Для этой библиотеки нужен питон 3.11 , иначе не заработает
+sentence-transformers
+aiogram
+torch
+
+# Тесты
+pytest
+
+# векторный поиск в нашей бдшке, мой ИИшный тг-бот на нем
+sentence-transformers
+scikit-learn
+numpy
+
