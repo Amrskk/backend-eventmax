@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from app.api.v1 import users
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import Settings
 from app.bot import instance, handlers
 import asyncio
 
