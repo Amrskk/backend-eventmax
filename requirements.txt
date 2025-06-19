@@ -9,7 +9,7 @@ SQLAlchemy
 alembic
 
 # Pydantic (схемы)
-pydantic
+pydantic[email]
 pydantic-settings
 
 # Работа с внешними API (погода, бот)
