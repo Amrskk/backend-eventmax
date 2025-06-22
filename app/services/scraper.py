@@ -4,6 +4,10 @@ from typing import List, Dict
 from datetime import datetime
 
 BASE_URL = "https://sxodim.com/almaty/afisha"
+headers = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+}
+
 
 def parse_date(date_str: str) -> datetime:
     months = {
@@ -26,7 +30,7 @@ def parse_price(price_str: str) -> float:
 def fetch_events_from_sxodim() -> List[Dict]:
     events = []
 
-    response = httpx.get("https://sxodim.com/almaty/afisha")
+    response = httpx.get(BASE_URL, headers=headers)
     soup = BeautifulSoup(response.text, "lxml")
 
     for card in soup.select(".impression-card"):
@@ -37,7 +41,7 @@ def fetch_events_from_sxodim() -> List[Dict]:
             price = parse_price(card.get("data-minprice", "0"))
             tags = [tag.text.strip() for tag in card.select(".badge")]
 
-            detail = httpx.get(full_url)
+            detail = httpx.get(full_url, headers=headers)
             ds = BeautifulSoup(detail.text, "lxml")
             desc = ds.select_one(".event-description")
             description = desc.text.strip() if desc else ""
