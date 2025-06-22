@@ -1,41 +1,38 @@
 import httpx
 from bs4 import BeautifulSoup
 from typing import List, Dict
-
+from playwright.sync_api import sync_playwright
 
 def fetch_events_from_ticketon() -> List[Dict]:
     events = []
-    url = "https://ticketon.kz/rrs"
-    headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " 
-                  "AppleWebKit/537.36 (KHTML, like Gecko) "
-                  "Chrome/114.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml",
-    }   
-    try:
-        response = httpx.get(url, headers=headers)
-        soup = BeautifulSoup(response.text, "lxml")
 
-        for card in soup.select(".poster__item"):
-            print(card.prettify())
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto("https://ticketon.kz/rrs", timeout=60000)
+        page.wait_for_selector(".poster__item", timeout=20000)
+
+        cards = page.query_selector_all(".poster__item")
+        print(f"Found {len(cards)} cards")
+
+        for card in cards:
             try:
-                title = card.select_one(".poster__name").text.strip()
-                link = "https://ticketon.kz" + card.select_one("a")["href"]
-                location = card.select_one(".poster__city").text.strip()
-                date = card.select_one(".poster__date").text.strip()
-                price = 0.0  # unavailable in the card (
+                title = card.query_selector(".poster__name").inner_text().strip()
+                location = card.query_selector(".poster__city").inner_text().strip()
+                date = card.query_selector(".poster__date").inner_text().strip()
+                link = "https://ticketon.kz" + card.query_selector("a").get_attribute("href")
 
                 events.append({
                     "title": title,
                     "description": "",
                     "location": location,
-                    "price": price,
+                    "price": 0.0,
                     "date": date,
                     "tags": ["ticketon"]
                 })
-
             except Exception as e:
-                print("Skip ticketon event:", e)
-    except Exception as e:
-        print("Ticketon page load failed:", e)
+                print("skip card:", e)
+
+        browser.close()
+
     return events
