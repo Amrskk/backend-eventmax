@@ -1,60 +1,78 @@
 import httpx
 from bs4 import BeautifulSoup
 from typing import List, Dict
-from datetime import datetime
-
-BASE_URL = "https://sxodim.com/almaty/afisha"
-headers = {
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-}
 
 
-def parse_date(date_str: str) -> datetime:
-    months = {
-        'января': 1, 'февраля': 2, 'марта': 3, 'апреля': 4,
-        'мая': 5, 'июня': 6, 'июля': 7, 'августа': 8,
-        'сентября': 9, 'октября': 10, 'ноября': 11, 'декабря': 12
-    }
-    parts = date_str.strip().split()
-    if len(parts) != 3:
-        return datetime.now()
-    day, month, year = int(parts[0]), months[parts[1]], int(parts[2])
-    return datetime(year, month, day)
-
-def parse_price(price_str: str) -> float:
-    if "бесплатно" in price_str.lower():
-        return 0.0
-    digits = ''.join(filter(str.isdigit, price_str))
-    return float(digits) if digits else 0.0
-
-def fetch_events_from_sxodim() -> List[Dict]:
+def fetch_events_from_ticketon() -> List[Dict]:
     events = []
+    url = "https://ticketon.kz/rrs"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+    }
+    try:
+        response = httpx.get(url, headers=headers)
+        soup = BeautifulSoup(response.text, "lxml")
 
-    response = httpx.get(BASE_URL, headers=headers)
-    soup = BeautifulSoup(response.text, "lxml")
+        for card in soup.select(".poster__item"):
+            try:
+                title = card.select_one(".poster__name").text.strip()
+                link = "https://ticketon.kz" + card.select_one("a")["href"]
+                location = card.select_one(".poster__city").text.strip()
+                date = card.select_one(".poster__date").text.strip()
+                price = 0.0  # unavailable in the card (
 
-    for card in soup.select(".impression-card"):
-        try:
-            title = card.get("title")
-            link_suffix = card.select_one(".impression-card-image a")["href"]
-            full_url = "https://sxodim.com" + link_suffix
-            price = parse_price(card.get("data-minprice", "0"))
-            tags = [tag.text.strip() for tag in card.select(".badge")]
+                events.append({
+                    "title": title,
+                    "description": "",
+                    "location": location,
+                    "price": price,
+                    "date": date,
+                    "tags": ["ticketon"]
+                })
 
-            detail = httpx.get(full_url, headers=headers)
-            ds = BeautifulSoup(detail.text, "lxml")
-            desc = ds.select_one(".event-description")
-            description = desc.text.strip() if desc else ""
+            except Exception as e:
+                print("Skip ticketon event:", e)
+    except Exception as e:
+        print("Ticketon page load failed:", e)
+
+    return events
+
+def fetch_events_from_yandex_afisha() -> List[Dict]:
+    events = []
+    base_url = "https://afisha.yandex.ru/api/events"
+    params = {
+        "location": "almaty",
+        "limit": 50,
+        "page": 1
+    }
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json"
+    }
+
+    try:
+        response = httpx.get(base_url, params=params, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        for item in data.get("data", []):
+            title = item.get("title", "").strip()
+            description = item.get("description", "").strip()
+            location = item.get("location", {}).get("title", "Алматы")
+            tags = [genre.get("name") for genre in item.get("genres", [])]
+            date = item.get("schedule", {}).get("start", None)
+            price = 0.0  # No price info in API
 
             events.append({
                 "title": title,
                 "description": description,
-                "location": "Алматы",  # Fallback if no exact location
+                "location": location,
                 "price": price,
-                "date": datetime.now(),  # recheck laterr
-                "tags": tags
+                "date": date,
+                "tags": tags + ["yandex_afisha"]
             })
-        except Exception as e:
-            print("Skip event due to error:", e)
+
+    except Exception as e:
+        print("Yandex Afisha error:", e)
 
     return events
