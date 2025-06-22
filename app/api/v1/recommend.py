@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
 from app.db.models.event import Event
-from app.schemas.recommendation import RecommendRequest, EventOut
+from app.db.schemas.recommendation import RecommendRequest, EventOut
 from app.services.recommendation import recommend_events
 from sqlalchemy.future import select
+from typing import List
 
 router = APIRouter()
 

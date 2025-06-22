@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from app.api.v1 import users
 from fastapi.middleware.cors import CORSMiddleware
 from app.bot import instance, handlers
+from app.api.v1 import admin, recommend
 import asyncio
 
 app = FastAPI(title="Smart Events API")
@@ -23,3 +24,8 @@ async def root():
 @app.on_event("startup")
 async def startup():
     asyncio.create_task(instance.dp.start_polling(instance.bot))
+
+
+
+app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
+app.include_router(recommend.router, prefix="/api/v1", tags=["Recommendations"])
