@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from typing import List, Dict
 from datetime import datetime
 
-BASE_URL = "https://sxodim.com/almaty/events/"
+BASE_URL = "https://sxodim.com/almaty/afisha"
 
 def parse_date(date_str: str) -> datetime:
     months = {
@@ -26,30 +26,29 @@ def parse_price(price_str: str) -> float:
 def fetch_events_from_sxodim() -> List[Dict]:
     events = []
 
-    response = httpx.get(BASE_URL)
+    response = httpx.get("https://sxodim.com/almaty/afisha")
     soup = BeautifulSoup(response.text, "lxml")
 
-    for card in soup.select(".card-event"):
+    for card in soup.select(".impression-card"):
         try:
-            title = card.select_one(".card-event__title").text.strip()
-            link = card.select_one("a")["href"]
-            full_url = "https://sxodim.com" + link
+            title = card.get("title")
+            link_suffix = card.select_one(".impression-card-image a")["href"]
+            full_url = "https://sxodim.com" + link_suffix
+            price = parse_price(card.get("data-minprice", "0"))
+            tags = [tag.text.strip() for tag in card.select(".badge")]
 
             detail = httpx.get(full_url)
             ds = BeautifulSoup(detail.text, "lxml")
-
-            desc = ds.select_one(".event-description").text.strip()
-            date = parse_date(ds.select_one(".event-date").text.strip())
-            location = ds.select_one(".event-location").text.strip()
-            price = parse_price(ds.select_one(".event-price").text.strip())
+            desc = ds.select_one(".event-description")
+            description = desc.text.strip() if desc else ""
 
             events.append({
                 "title": title,
-                "description": desc,
-                "location": location,
+                "description": description,
+                "location": "Алматы",  # Fallback if no exact location
                 "price": price,
-                "date": date,
-                "tags": ["sxodim"]
+                "date": datetime.now(),  # recheck laterr
+                "tags": tags
             })
         except Exception as e:
             print("Skip event due to error:", e)
